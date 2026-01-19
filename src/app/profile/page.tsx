@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   User,
@@ -19,7 +19,11 @@ import Link from 'next/link';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
+  // Use untyped client to avoid strict type issues with profiles table
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const { user, profile } = useAuth();
 
   const [fullName, setFullName] = useState('');
@@ -49,7 +53,7 @@ export default function ProfilePage() {
         .update({
           full_name: fullName || null,
           avatar_url: avatarUrl || null,
-        } as { full_name: string | null; avatar_url: string | null })
+        })
         .eq('id', user.id);
 
       if (updateError) {
