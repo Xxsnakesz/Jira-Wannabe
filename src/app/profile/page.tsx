@@ -44,12 +44,13 @@ export default function ProfilePage() {
     setSuccess(false);
 
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({
           full_name: fullName,
           avatar_url: avatarUrl,
-        } as { full_name: string | null; avatar_url: string | null })
+        })
         .eq('id', user.id);
 
       if (error) {
