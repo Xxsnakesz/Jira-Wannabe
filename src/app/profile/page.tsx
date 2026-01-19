@@ -44,7 +44,8 @@ export default function ProfilePage() {
     setSuccess(false);
 
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({
           full_name: fullName,
