@@ -45,6 +45,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Helper function to parse time/datetime to ISO string
+    const parseToTimestamp = (value: string | undefined): string => {
+      if (!value) return new Date().toISOString();
+      
+      // If it's just time like "16:40", add today's date
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+        const today = new Date().toISOString().split('T')[0];
+        return new Date(`${today}T${value}:00`).toISOString();
+      }
+      
+      // If it's a valid date/datetime, parse it
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+      
+      // Fallback to current time
+      return new Date().toISOString();
+    };
+
     // Map n8n payload to database schema
     const incidentData: IncidentInsert = {
       incident_id: payload.incident_id,
@@ -53,8 +73,8 @@ export async function POST(request: NextRequest) {
       impact: payload.impact || 'Unknown',
       pic: payload.pic || 'Unassigned',
       phone_number: payload.nomor_wa || '',
-      waktu_kejadian: payload.waktu_kejadian || new Date().toISOString(),
-      waktu_chat: payload.waktu_chat || new Date().toISOString(),
+      waktu_kejadian: parseToTimestamp(payload.waktu_kejadian),
+      waktu_chat: parseToTimestamp(payload.waktu_chat),
       status: 'New',
     };
 
