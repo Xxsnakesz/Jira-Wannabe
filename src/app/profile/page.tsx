@@ -44,16 +44,16 @@ export default function ProfilePage() {
     setSuccess(false);
 
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({
-          full_name: fullName,
-          avatar_url: avatarUrl,
-        })
+          full_name: fullName || null,
+          avatar_url: avatarUrl || null,
+        } as { full_name: string | null; avatar_url: string | null })
         .eq('id', user.id);
 
-      if (error) {
-        setError(error.message);
+      if (updateError) {
+        setError(updateError.message);
         return;
       }
 
