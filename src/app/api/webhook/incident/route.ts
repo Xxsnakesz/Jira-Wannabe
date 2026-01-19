@@ -26,14 +26,14 @@ const supabase = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify webhook secret
-    const webhookSecret = request.headers.get('x-webhook-secret');
-    if (process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
-      return NextResponse.json<ApiResponse>(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Optional: Verify webhook secret (uncomment if you want to secure the webhook)
+    // const webhookSecret = request.headers.get('x-webhook-secret');
+    // if (process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
+    //   return NextResponse.json<ApiResponse>(
+    //     { success: false, error: 'Unauthorized' },
+    //     { status: 401 }
+    //   );
+    // }
 
     const payload: N8NIncidentPayload = await request.json();
 
