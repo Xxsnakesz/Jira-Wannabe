@@ -49,7 +49,7 @@ export default function ProfilePage() {
         .update({
           full_name: fullName,
           avatar_url: avatarUrl,
-        })
+        } as { full_name: string | null; avatar_url: string | null })
         .eq('id', user.id);
 
       if (error) {
