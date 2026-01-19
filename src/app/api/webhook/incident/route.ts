@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import type { N8NIncidentPayload, ApiResponse, IncidentInsert } from '@/types/incident';
+import type { N8NIncidentPayload, ApiResponse, IncidentInsert, IncidentStatus } from '@/types/incident';
 
 // Use service role for API routes (bypasses RLS)
 const supabase = createClient(
@@ -8,9 +8,44 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Helper function to parse time/datetime to ISO string
+const parseToTimestamp = (value: string | undefined): string => {
+  if (!value) return new Date().toISOString();
+  
+  // If it's just time like "16:40", add today's date
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
+    const today = new Date().toISOString().split('T')[0];
+    return new Date(`${today}T${value}:00`).toISOString();
+  }
+  
+  // If it's a valid date/datetime, parse it
+  const parsed = new Date(value);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString();
+  }
+  
+  // Fallback to current time
+  return new Date().toISOString();
+};
+
+// Helper to map status from n8n to valid status
+const mapStatus = (status: string | undefined): IncidentStatus => {
+  const statusMap: Record<string, IncidentStatus> = {
+    'new': 'New',
+    'in progress': 'In Progress',
+    'inprogress': 'In Progress',
+    'resolved': 'Resolved',
+    'closed': 'Closed',
+  };
+  
+  if (!status) return 'New';
+  const normalized = status.toLowerCase().trim();
+  return statusMap[normalized] || (status as IncidentStatus) || 'New';
+};
+
 /**
  * POST /api/webhook/incident
- * Webhook endpoint for n8n to create new incidents
+ * Webhook endpoint for n8n to create or update incidents
  * 
  * Expected payload from n8n:
  * {
@@ -21,12 +56,13 @@ const supabase = createClient(
  *   "pic": "John Doe",
  *   "nomor_wa": "6281234567890",
  *   "waktu_kejadian": "2026-01-19T10:30:00Z",
- *   "waktu_chat": "2026-01-19T10:35:00Z"
+ *   "waktu_chat": "2026-01-19T10:35:00Z",
+ *   "status": "New" | "In Progress" | "Resolved" | "Closed"
  * }
  */
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify webhook secret (uncomment if you want to secure the webhook)
+    // Optional: Verify webhook secret (disabled for now)
     // const webhookSecret = request.headers.get('x-webhook-secret');
     // if (process.env.WEBHOOK_SECRET && webhookSecret !== process.env.WEBHOOK_SECRET) {
     //   return NextResponse.json<ApiResponse>(
@@ -35,7 +71,7 @@ export async function POST(request: NextRequest) {
     //   );
     // }
 
-    const payload: N8NIncidentPayload = await request.json();
+    const payload = await request.json() as N8NIncidentPayload & { status?: string };
 
     // Validate required fields
     if (!payload.incident_id) {
@@ -45,25 +81,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Helper function to parse time/datetime to ISO string
-    const parseToTimestamp = (value: string | undefined): string => {
-      if (!value) return new Date().toISOString();
-      
-      // If it's just time like "16:40", add today's date
-      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(value)) {
-        const today = new Date().toISOString().split('T')[0];
-        return new Date(`${today}T${value}:00`).toISOString();
-      }
-      
-      // If it's a valid date/datetime, parse it
-      const parsed = new Date(value);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString();
-      }
-      
-      // Fallback to current time
-      return new Date().toISOString();
-    };
+    // Check if incident already exists
+    const { data: existingIncident } = await supabase
+      .from('incidents')
+      .select('id')
+      .eq('incident_id', payload.incident_id)
+      .single();
 
     // Map n8n payload to database schema
     const incidentData: IncidentInsert = {
@@ -75,41 +98,68 @@ export async function POST(request: NextRequest) {
       phone_number: payload.nomor_wa || '',
       waktu_kejadian: parseToTimestamp(payload.waktu_kejadian),
       waktu_chat: parseToTimestamp(payload.waktu_chat),
-      status: 'New',
+      status: mapStatus(payload.status),
     };
 
-    // Insert into Supabase
-    const { data, error } = await supabase
-      .from('incidents')
-      .insert(incidentData)
-      .select()
-      .single();
+    if (existingIncident) {
+      // UPDATE existing incident
+      const { data, error } = await supabase
+        .from('incidents')
+        .update({
+          description: incidentData.description,
+          incident_type: incidentData.incident_type,
+          impact: incidentData.impact,
+          pic: incidentData.pic,
+          phone_number: incidentData.phone_number,
+          waktu_kejadian: incidentData.waktu_kejadian,
+          waktu_chat: incidentData.waktu_chat,
+          status: incidentData.status,
+        })
+        .eq('incident_id', payload.incident_id)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Supabase insert error:', error);
-      
-      // Handle duplicate incident_id
-      if (error.code === '23505') {
+      if (error) {
+        console.error('Supabase update error:', error);
         return NextResponse.json<ApiResponse>(
-          { success: false, error: 'Incident ID already exists' },
-          { status: 409 }
+          { success: false, error: error.message },
+          { status: 500 }
         );
       }
 
       return NextResponse.json<ApiResponse>(
-        { success: false, error: error.message },
-        { status: 500 }
+        { 
+          success: true, 
+          data, 
+          message: `Incident ${payload.incident_id} updated successfully` 
+        },
+        { status: 200 }
+      );
+    } else {
+      // INSERT new incident
+      const { data, error } = await supabase
+        .from('incidents')
+        .insert(incidentData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase insert error:', error);
+        return NextResponse.json<ApiResponse>(
+          { success: false, error: error.message },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json<ApiResponse>(
+        { 
+          success: true, 
+          data, 
+          message: `Incident ${payload.incident_id} created successfully` 
+        },
+        { status: 201 }
       );
     }
-
-    return NextResponse.json<ApiResponse>(
-      { 
-        success: true, 
-        data, 
-        message: `Incident ${payload.incident_id} created successfully` 
-      },
-      { status: 201 }
-    );
 
   } catch (error) {
     console.error('Webhook error:', error);

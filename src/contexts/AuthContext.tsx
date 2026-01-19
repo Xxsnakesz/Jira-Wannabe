@@ -10,8 +10,6 @@ interface UserProfile {
   full_name: string | null;
   role: string;
   avatar_url: string | null;
-  created_at: string | null;
-  updated_at: string | null;
 }
 
 interface AuthContextType {
