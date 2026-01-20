@@ -95,6 +95,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Send update to n8n webhook for Google Sheets sync (fire and forget)
+    const n8nSheetsUrl = 'https://workflows.dhomanhuri.id/webhook/0e6b3591-dfea-4304-a341-660cca059c03';
+    
+    fetch(n8nSheetsUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'UPDATE',
+        table: 'incidents',
+        record: data,
+        old_record: currentIncident,
+      }),
+    })
+      .then(res => console.log('n8n sheets webhook:', res.status))
+      .catch(err => console.error('n8n sheets error:', err));
+
     // If status changed, trigger n8n notification webhook
     if (newStatus && oldStatus !== newStatus && process.env.N8N_WEBHOOK_URL) {
       const notification: StatusChangeNotification = {
