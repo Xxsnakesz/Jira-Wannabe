@@ -104,21 +104,27 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Send update to n8n webhook for Google Sheets sync (fire and forget)
+    // Send update to n8n webhook for Google Sheets sync
+    // Use production URL (workflow must be ACTIVE in n8n)
     const n8nSheetsUrl = 'https://workflows.dhomanhuri.id/webhook/0e6b3591-dfea-4304-a341-660cca059c03';
     
-    fetch(n8nSheetsUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'UPDATE',
-        table: 'incidents',
-        record: data,
-        old_record: currentIncident,
-      }),
-    })
-      .then(res => console.log('n8n sheets webhook:', res.status))
-      .catch(err => console.error('n8n sheets error:', err));
+    console.log('Calling n8n webhook:', n8nSheetsUrl);
+    
+    try {
+      const webhookResponse = await fetch(n8nSheetsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'UPDATE',
+          table: 'incidents',
+          record: data,
+          old_record: currentIncident,
+        }),
+      });
+      console.log('n8n webhook response status:', webhookResponse.status);
+    } catch (webhookErr) {
+      console.error('n8n webhook error:', webhookErr);
+    }
 
     // If status changed, trigger n8n notification webhook
     if (newStatus && oldStatus !== newStatus && process.env.N8N_WEBHOOK_URL) {
