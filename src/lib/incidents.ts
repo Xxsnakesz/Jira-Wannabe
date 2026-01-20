@@ -23,6 +23,8 @@ export async function updateIncidentStatus(
   id: string,
   status: IncidentStatus
 ): Promise<Incident> {
+  console.log('updateIncidentStatus called:', { id, status });
+  
   const response = await fetch(`/api/incidents/${id}`, {
     method: 'PATCH',
     headers: {
@@ -31,12 +33,16 @@ export async function updateIncidentStatus(
     body: JSON.stringify({ status }),
   });
 
+  console.log('API response status:', response.status);
+
   if (!response.ok) {
     const error = await response.json();
+    console.error('API error:', error);
     throw new Error(error.error || 'Failed to update incident');
   }
 
   const result = await response.json();
+  console.log('API result:', result);
   return result.data;
 }
 
