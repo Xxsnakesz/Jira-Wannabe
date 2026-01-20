@@ -106,26 +106,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Send update to n8n webhook for Google Sheets sync
     // Use production URL (workflow must be ACTIVE in n8n)
-    const n8nSheetsUrl = 'https://workflows.dhomanhuri.id/webhook/0e6b3591-dfea-4304-a341-660cca059c03';
+    const n8nSheetsUrl = 'https://workflows.dhomanhuri.id/webhook/0e6b3591-dfea-4304-a351-660cca059c03';
     
     console.log('Calling n8n webhook:', n8nSheetsUrl);
     
     try {
-      // Map to field names that n8n/Google Sheets expects
+      // Map to field names that n8n expects (based on n8n workflow config)
       const webhookPayload = {
-        id_insiden: data.incident_id,
-        status: data.status,
-        keterangan: data.description,
-        tipe: data.incident_type,
-        impact: data.impact,
-        waktu_kejadian: data.waktu_kejadian,
-        pic: data.pic,
-        nomor_wa: data.phone_number,
-        waktu_chat: data.waktu_chat,
-        project_name: data.project_name,
-        // Also include the raw data for reference
-        type: 'UPDATE',
-        table: 'incidents',
+        incident_id: data.incident_id,      // n8n uses $json.incident_id
+        project_name: data.project_name,    // n8n uses $json.project_name
+        status: data.status,                // n8n uses $json.status
+        keterangan: data.description,       // n8n uses $json.keterangan
+        tipe: data.incident_type,           // n8n uses $json.tipe
+        impact: data.impact,                // n8n uses $json.impact
+        waktu_kejadian: data.waktu_kejadian, // n8n uses $json.waktu_kejadian
+        pic: data.pic,                      // n8n uses $json.pic (if needed)
+        nomor_wa: data.phone_number,        // n8n uses $json.nomor_wa (if needed)
+        waktu_chat: data.waktu_chat,        // n8n uses $json.waktu_chat (if needed)
       };
       
       console.log('Webhook payload:', JSON.stringify(webhookPayload));
