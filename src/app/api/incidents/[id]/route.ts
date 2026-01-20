@@ -111,17 +111,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     console.log('Calling n8n webhook:', n8nSheetsUrl);
     
     try {
+      // Map to field names that n8n/Google Sheets expects
+      const webhookPayload = {
+        id_insiden: data.incident_id,
+        status: data.status,
+        keterangan: data.description,
+        tipe: data.incident_type,
+        impact: data.impact,
+        waktu_kejadian: data.waktu_kejadian,
+        pic: data.pic,
+        nomor_wa: data.phone_number,
+        waktu_chat: data.waktu_chat,
+        project_name: data.project_name,
+        // Also include the raw data for reference
+        type: 'UPDATE',
+        table: 'incidents',
+      };
+      
+      console.log('Webhook payload:', JSON.stringify(webhookPayload));
+      
       const webhookResponse = await fetch(n8nSheetsUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'UPDATE',
-          table: 'incidents',
-          record: data,
-          old_record: currentIncident,
-        }),
+        body: JSON.stringify(webhookPayload),
       });
       console.log('n8n webhook response status:', webhookResponse.status);
+      const webhookResult = await webhookResponse.text();
+      console.log('n8n webhook response:', webhookResult);
     } catch (webhookErr) {
       console.error('n8n webhook error:', webhookErr);
     }
