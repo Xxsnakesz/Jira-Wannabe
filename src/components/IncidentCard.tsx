@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, User, Clock, AlertTriangle } from 'lucide-react';
+import { GripVertical, User, Clock, AlertTriangle, FolderKanban } from 'lucide-react';
 import type { Incident } from '@/types/incident';
 import { cn, getImpactColor, getRelativeTime } from '@/lib/utils';
 import { IncidentDetailModal } from './KanbanBoard';
@@ -49,6 +49,16 @@ export function IncidentCard({ incident, isDragging }: IncidentCardProps) {
 
         {/* Card Content */}
         <div className="p-3 space-y-2">
+          {/* Project Name Badge */}
+          {incident.project_name && (
+            <div className="flex items-center gap-1.5">
+              <FolderKanban className="w-3.5 h-3.5 text-purple-500" />
+              <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full truncate max-w-[150px]">
+                {incident.project_name}
+              </span>
+            </div>
+          )}
+
           {/* Incident ID */}
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">

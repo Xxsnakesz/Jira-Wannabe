@@ -3,6 +3,7 @@ export type IncidentStatus = 'New' | 'In Progress' | 'Resolved' | 'Closed';
 export interface Incident {
   id: string;
   incident_id: string;
+  project_name: string | null;
   status: IncidentStatus;
   description: string | null;
   incident_type: string | null;
@@ -18,6 +19,7 @@ export interface Incident {
 // Incoming payload from n8n webhook
 export interface N8NIncidentPayload {
   incident_id: string;
+  project_name?: string;
   keterangan: string;
   tipe: string;
   impact: string;
@@ -30,6 +32,7 @@ export interface N8NIncidentPayload {
 // Mapped payload for database insertion
 export interface IncidentInsert {
   incident_id: string;
+  project_name?: string;
   description: string;
   incident_type: string;
   impact: string;

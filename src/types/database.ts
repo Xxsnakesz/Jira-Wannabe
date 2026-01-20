@@ -40,6 +40,7 @@ export interface Database {
         Row: {
           id: string;
           incident_id: string;
+          project_name: string | null;
           status: string;
           description: string | null;
           incident_type: string | null;
@@ -54,6 +55,7 @@ export interface Database {
         Insert: {
           id?: string;
           incident_id: string;
+          project_name?: string | null;
           status?: string;
           description?: string | null;
           incident_type?: string | null;
@@ -68,6 +70,7 @@ export interface Database {
         Update: {
           id?: string;
           incident_id?: string;
+          project_name?: string | null;
           status?: string;
           description?: string | null;
           incident_type?: string | null;

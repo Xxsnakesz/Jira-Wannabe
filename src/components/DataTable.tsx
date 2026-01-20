@@ -12,6 +12,7 @@ import {
   Calendar,
   AlertTriangle,
   X,
+  FolderKanban,
 } from 'lucide-react';
 import type { Incident, IncidentStatus } from '@/types/incident';
 import { cn, formatDate, getImpactColor, getStatusColor, getRelativeTime } from '@/lib/utils';
@@ -21,7 +22,7 @@ interface DataTableProps {
   onStatusChange: (id: string, status: IncidentStatus) => Promise<void>;
 }
 
-type SortField = 'incident_id' | 'status' | 'impact' | 'waktu_kejadian' | 'waktu_chat';
+type SortField = 'incident_id' | 'project_name' | 'status' | 'impact' | 'waktu_kejadian' | 'waktu_chat';
 type SortDirection = 'asc' | 'desc';
 
 const STATUS_OPTIONS: IncidentStatus[] = ['New', 'In Progress', 'Resolved', 'Closed'];
@@ -30,6 +31,7 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | 'all'>('all');
   const [impactFilter, setImpactFilter] = useState<string>('all');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('waktu_chat');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
@@ -58,6 +60,11 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
       result = result.filter((incident) => incident.impact === impactFilter);
     }
 
+    // Project filter
+    if (projectFilter !== 'all') {
+      result = result.filter((incident) => incident.project_name === projectFilter);
+    }
+
     // Sorting
     result.sort((a, b) => {
       let aValue: string | null = null;
@@ -67,6 +74,10 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
         case 'incident_id':
           aValue = a.incident_id;
           bValue = b.incident_id;
+          break;
+        case 'project_name':
+          aValue = a.project_name;
+          bValue = b.project_name;
           break;
         case 'status':
           aValue = a.status;
@@ -95,11 +106,16 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
     });
 
     return result;
-  }, [incidents, search, statusFilter, impactFilter, sortField, sortDirection]);
+  }, [incidents, search, statusFilter, impactFilter, projectFilter, sortField, sortDirection]);
 
   const uniqueImpacts = useMemo(() => {
     const impacts = new Set(incidents.map((i) => i.impact).filter(Boolean));
     return Array.from(impacts) as string[];
+  }, [incidents]);
+
+  const uniqueProjects = useMemo(() => {
+    const projects = new Set(incidents.map((i) => i.project_name).filter(Boolean));
+    return Array.from(projects) as string[];
   }, [incidents]);
 
   const handleSort = (field: SortField) => {
@@ -179,6 +195,23 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
             ))}
           </select>
         </div>
+
+        {/* Project Filter */}
+        <div className="relative">
+          <FolderKanban className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <select
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+          >
+            <option value="all">All Projects</option>
+            {uniqueProjects.map((project) => (
+              <option key={project} value={project}>
+                {project}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Results Count */}
@@ -199,6 +232,15 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
                   <div className="flex items-center gap-1">
                     Incident ID
                     <SortIcon field="incident_id" />
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('project_name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Project
+                    <SortIcon field="project_name" />
                   </div>
                 </th>
                 <th
@@ -242,7 +284,7 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
             <tbody className="divide-y divide-gray-200">
               {filteredAndSortedIncidents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                     No incidents found
                   </td>
                 </tr>
@@ -255,6 +297,12 @@ export function DataTable({ incidents, onStatusChange }: DataTableProps) {
                     <td className="px-4 py-3">
                       <span className="font-mono text-sm font-semibold text-blue-600">
                         {incident.incident_id}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs font-medium">
+                        <FolderKanban className="w-3 h-3" />
+                        {incident.project_name || 'General'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -375,6 +423,10 @@ function DetailModal({ incident, onClose }: { incident: Incident; onClose: () =>
             </span>
             <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
               {incident.incident_type || 'Unknown'}
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+              <FolderKanban className="w-3 h-3" />
+              {incident.project_name || 'General'}
             </span>
           </div>
 

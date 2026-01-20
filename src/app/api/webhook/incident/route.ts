@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
     // Map n8n payload to database schema
     const incidentData: IncidentInsert = {
       incident_id: payload.incident_id,
+      project_name: payload.project_name || 'General',
       description: payload.keterangan || '',
       incident_type: payload.tipe || 'Unknown',
       impact: payload.impact || 'Unknown',
@@ -118,6 +119,7 @@ export async function POST(request: NextRequest) {
       const { data, error } = await supabase
         .from('incidents')
         .update({
+          project_name: incidentData.project_name,
           description: incidentData.description,
           incident_type: incidentData.incident_type,
           impact: incidentData.impact,
@@ -126,6 +128,7 @@ export async function POST(request: NextRequest) {
           waktu_kejadian: incidentData.waktu_kejadian,
           waktu_chat: incidentData.waktu_chat,
           status: incidentData.status,
+          updated_at: new Date().toISOString(),
         })
         .eq('incident_id', payload.incident_id)
         .select()
