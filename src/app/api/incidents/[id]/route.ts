@@ -81,14 +81,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update the incident
+    console.log('Updating incident:', id, 'to status:', newStatus);
+    
     const { data, error } = await supabase
       .from('incidents')
-      .update({ status: newStatus, ...otherUpdates })
+      .update({ 
+        status: newStatus, 
+        updated_at: new Date().toISOString(),
+        ...otherUpdates 
+      })
       .eq('id', id)
       .select()
       .single();
 
+    console.log('Update result:', { data, error });
+
     if (error) {
+      console.error('Supabase update error:', error);
       return NextResponse.json<ApiResponse>(
         { success: false, error: error.message },
         { status: 500 }
