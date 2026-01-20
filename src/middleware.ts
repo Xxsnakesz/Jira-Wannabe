@@ -36,11 +36,11 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password'];
   const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
   
-  // API routes for webhooks should be public
-  const isWebhookRoute = request.nextUrl.pathname.startsWith('/api/webhook');
+  // API routes should be public (they have their own authentication if needed)
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api/');
 
   // If user is not logged in and trying to access protected route
-  if (!user && !isPublicRoute && !isWebhookRoute) {
+  if (!user && !isPublicRoute && !isApiRoute) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
