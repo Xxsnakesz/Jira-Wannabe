@@ -32,14 +32,20 @@ const parseToTimestamp = (value: string | undefined): string => {
 const mapStatus = (status: string | undefined): IncidentStatus => {
   const statusMap: Record<string, IncidentStatus> = {
     'new': 'New',
+    'open': 'New',
     'in progress': 'In Progress',
     'inprogress': 'In Progress',
+    'in-progress': 'In Progress',
+    'progress': 'In Progress',
     'resolved': 'Resolved',
+    'done': 'Resolved',
     'closed': 'Closed',
+    'close': 'Closed',
   };
   
   if (!status) return 'New';
   const normalized = status.toLowerCase().trim();
+  console.log('Mapping status:', status, '-> normalized:', normalized, '-> mapped:', statusMap[normalized] || status);
   return statusMap[normalized] || (status as IncidentStatus) || 'New';
 };
 
@@ -101,8 +107,14 @@ export async function POST(request: NextRequest) {
       status: mapStatus(payload.status),
     };
 
+    console.log('Received payload:', JSON.stringify(payload));
+    console.log('Mapped incidentData:', JSON.stringify(incidentData));
+    console.log('Existing incident:', existingIncident ? 'YES - will UPDATE' : 'NO - will INSERT');
+
     if (existingIncident) {
       // UPDATE existing incident
+      console.log('Updating incident:', payload.incident_id, 'with status:', incidentData.status);
+      
       const { data, error } = await supabase
         .from('incidents')
         .update({
@@ -127,11 +139,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      console.log('Update successful, returned data:', JSON.stringify(data));
+
       return NextResponse.json<ApiResponse>(
         { 
           success: true, 
           data, 
-          message: `Incident ${payload.incident_id} updated successfully` 
+          message: `Incident ${payload.incident_id} updated successfully with status: ${incidentData.status}` 
         },
         { status: 200 }
       );
